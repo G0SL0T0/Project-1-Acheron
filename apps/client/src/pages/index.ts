@@ -1,0 +1,6 @@
+export { HomePage } from './home/HomePage'
+export { StreamPage } from './stream/StreamPage'
+export { ProfilePage } from './profile/ProfilePage'
+export { LoginPage } from './pages/auth/LoginPage'
+export { RegisterPage } from './pages/auth/RegisterPage'
+export { NotFoundPage } from './error/NotFoundPage'

@@ -1,0 +1,39 @@
+// Константы для аутентификации
+export const AUTH_CONSTANTS = {
+  JWT_ACCESS_EXPIRES_IN: '15m',
+  JWT_REFRESH_EXPIRES_IN: '7d',
+  MAX_LOGIN_ATTEMPTS: 5,
+  ACCOUNT_LOCKOUT_DURATION: 15 * 60 * 1000, // 15 минут
+}
+
+// Константы для безопасности
+export const SECURITY_CONSTANTS = {
+  BCRYPT_ROUNDS: 12,
+  RATE_LIMIT_WINDOW: 15 * 60 * 1000, // 15 минут
+  RATE_LIMIT_MAX_REQUESTS: 100,
+  SESSION_TIMEOUT: 30 * 60 * 1000, // 30 минут
+}
+
+// Константы для мониторинга
+export const MONITORING_CONSTANTS = {
+  LOG_RETENTION_DAYS: 30,
+  METRICS_RETENTION_DAYS: 7,
+  MAX_LOGS_IN_MEMORY: 1000,
+  CLEANUP_INTERVAL: 24 * 60 * 60 * 1000, // 24 часа
+}
+
+// Константы для производительности
+export const PERFORMANCE_CONSTANTS = {
+  ANIMATION_DURATION: 300,
+  DEBOUNCE_TIME: 300,
+  VIRTUALIZATION_THRESHOLD: 50,
+  IMAGE_QUALITY_OPTIMIZED: 0.7,
+  IMAGE_QUALITY_ENHANCED: 0.9,
+}
+
+// Константы для API
+export const API_CONSTANTS = {
+  DEFAULT_PAGE_SIZE: 20,
+  MAX_PAGE_SIZE: 100,
+  TIMEOUT: 30000,
+}
