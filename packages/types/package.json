@@ -1,0 +1,17 @@
+{
+  "name": "@streaming/types",
+  "version": "1.0.0",
+  "description": "Общие типы TypeScript для платформы",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

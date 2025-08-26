@@ -1,0 +1,21 @@
+/* Тема "Минимал" */
+[data-theme="minimal"] {
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-500: #22c55e;
+  --color-primary-900: #14532d;
+  
+  --color-background: #ffffff;
+  --color-foreground: #1a2e05;
+  --color-muted: #6b7280;
+  --color-accent: #f9fafb;
+  --color-border: #e5e7eb;
+}
+
+[data-theme="minimal"][data-theme="dark"] {
+  --color-background: #1a2e05;
+  --color-foreground: #f0fdf4;
+  --color-muted: #9ca3af;
+  --color-accent: #1f2937;
+  --color-border: #374151;
+}

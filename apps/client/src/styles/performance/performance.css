@@ -1,0 +1,63 @@
+/* Оптимизированный режим */
+[data-performance="optimized"] {
+  /* Отключаем анимации */
+  * {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+  
+  /* Упрощенные тени */
+  .shadow {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Отключаем градиенты */
+  .gradient {
+    background: var(--color-background) !important;
+  }
+  
+  /* Упрощенные бордеры */
+  .border-fancy {
+    border: 1px solid var(--color-border) !important;
+  }
+}
+
+/* Расширенный режим */
+[data-performance="enhanced"] {
+  /* Включаем плавные анимации */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  /* Красивые тени */
+  .shadow-enhanced {
+    box-shadow: 
+      0 10px 25px rgba(0, 0, 0, 0.1),
+      0 4px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Градиенты */
+  .gradient-enhanced {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-500) 100%);
+  }
+  
+  /* Анимированные бордеры */
+  .border-animated {
+    border: 2px solid transparent;
+    background-image: linear-gradient(var(--color-background), var(--color-background)), 
+                      linear-gradient(45deg, var(--color-primary), var(--color-primary-500));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

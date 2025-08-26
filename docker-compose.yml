@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  db:
+    image: postgres:15-alpine
+    container_name: streaming-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-streaming}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-streaming}
+      POSTGRES_DB: ${DB_NAME:-streaming}
+      # Переменные для TDE
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgresql:/var/run/postgresql
+      - ./docker/ssl:/etc/ssl/postgresql  # SSL сертификаты
+    command: |
+      postgres 
+      -c ssl=on 
+      -c ssl_cert_file=/etc/ssl/postgresql/server.crt 
+      -c ssl_key_file=/etc/ssl/postgresql/server.key
+      -c ssl_ca_file=/etc/ssl/postgresql/root.crt
+    secrets:
+      - db_ssl_cert
+      - db_ssl_key
+      - db_ssl_ca
+    ports:
+      - ""  # Убираем порт для внешнего доступа
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-streaming} -h /var/run/postgresql"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+secrets:
+  db_ssl_cert:
+    file: ./docker/secrets/server.crt
+  db_ssl_key:
+    file: ./docker/secrets/server.key
+  db_ssl_ca:
+    file: ./docker/secrets/root.crt
+
+  # Redis для кэширования и сессий
+  redis:
+    image: redis:7-alpine
+    container_name: streaming-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  # RTMP сервер для приема потоков
+  rtmp:
+    image: alqutami/rtmp-hls:latest
+    container_name: streaming-rtmp
+    ports:
+      - "1935:1935"  # RTMP
+      - "8080:8080"  # HLS
+    volumes:
+      - ./docker/rtmp/nginx.conf:/etc/nginx/nginx.conf:ro
+      - hls_data:/tmp/hls
+    depends_on:
+      - db
+
+  db-replica:
+    image: postgres:15-alpine
+    container_name: streaming-db-replica
+    environment:
+      POSTGRES_USER: ${DB_REPLICA_USER:-replica}
+      POSTGRES_PASSWORD: ${DB_REPLICA_PASSWORD:-replica}
+      POSTGRES_DB: ${DB_NAME:-streaming}
+      POSTGRES_MASTER_SERVICE: db
+      POSTGRES_MASTER_PORT: 5432
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+    depends_on:
+      db:
+        condition: service_healthy
+    command: |
+      bash -c "
+      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=db --port=5432 -U ${DB_USER:-streaming}
+      do
+        echo 'Waiting for primary to connect...'
+        sleep 1s
+      done
+      echo 'Backup done, starting replica...'
+      chmod 0700 /var/lib/postgresql/data
+      postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+      "
+
+  # Backend API
+  server:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile
+    container_name: streaming-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://${DB_USER:-streaming}:${DB_PASSWORD:-streaming}@db:5432/${DB_NAME:-streaming}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-super-secret-key}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./apps/server:/app
+      - /app/node_modules
+    command: pnpm start:dev
+
+  # Frontend
+  client:
+    build:
+      context: ./apps/client
+      dockerfile: Dockerfile
+    container_name: streaming-web
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000
+    volumes:
+      - ./apps/client:/app
+      - /app/node_modules
+    command: pnpm dev
+
+volumes:
+  postgres_data:
+  redis_data:
+  hls_data:

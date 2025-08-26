@@ -1,0 +1,20 @@
+{
+  "name": "@streaming/database",
+  "version": "1.0.0",
+  "description": "Типы и утилиты для работы с базой данных",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@streaming/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

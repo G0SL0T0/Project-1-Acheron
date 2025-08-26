@@ -1,0 +1,322 @@
+// Это Prisma schema файл,
+// документация: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model OAuthAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  provider  String   // 'google', 'yandex'
+  providerId String  // Уникальный ID от провайдера
+  email     String   // Email от провайдера
+  name      String?  // Имя от провайдера
+  avatar    String?  // Аватар от провайдера
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerId])
+  @@map("oauth_accounts")
+}
+
+// Модель пользователя
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  password  String   // Хешированный пароль
+  avatar    String?
+  bio       String?
+  
+  // Шифрованные поля
+  encryptedEmail String? // Для защиты
+  
+  // Данные для 2FA
+  twoFactorSecret   String?
+  twoFactorEnabled Boolean  @default(false)
+  backupCodes       String[] // JSON массив
+  
+  // Безопасность
+  lastLoginAt       DateTime?
+  loginAttempts     Int      @default(0)
+  lockedUntil       DateTime?
+  
+  // Роли
+  roles     UserRole[]
+  
+  // Профиль
+  profile   Profile?
+  
+  // Стримы
+  streams   Stream[]
+  
+  // Сообщения в чате
+  messages  ChatMessage[]
+  
+  // Донаты
+  donations Donation[]
+  
+  // Транзакции
+  transactions Transaction[]
+  
+  // Предметы в инвентаре
+  userItems UserItem[]
+  
+  // Временные метки
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// Аудит безопасности
+model SecurityAudit {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  action      String   // 'LOGIN', 'LOGOUT', 'PASSWORD_CHANGE', '2FA_ENABLED'
+  ipAddress   String
+  userAgent   String?
+  successful  Boolean
+  metadata    Json?    // Доп данные
+  
+  createdAt   DateTime @default(now())
+
+  @@map("security_audits")
+}
+
+// Профиль пользователя
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Российские социальные сети
+  vk          String?  // ВКонтакте
+  telegram    String?  // Telegram (username или @username)
+  ok          String?  // Одноклассники
+  dzen        String?  // Дзен
+  boosty      String?  // Boosty
+  vkPlay      String?  // VK Play
+  yandexZen   String?  // Яндекс.Дзен (альтернатива dzen)
+  mailRu      String?  // Мой Мир@Mail.Ru
+  
+  // Зарубежные
+  twitter     String?
+  youtube     String?
+  twitch      String?
+  instagram   String?
+  facebook    String?
+  
+  // Другие платформы
+  tiktok      String?  // TikTok
+  discord     String?  // Discord (username или сервер)
+  github      String?  // GitHub
+  
+  // Настройки
+  language    String   @default("ru")
+  timezone    String   @default("Europe/Moscow")
+  
+  // Приватность
+  showSocials Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+// Роли пользователя
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  role   String // 'USER', 'AUTHOR', 'ADMIN'
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+// Стрим
+model Stream {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String?
+  
+  // Статус
+  isLive      Boolean  @default(false)
+  streamKey   String   @unique
+  hlsUrl      String?
+  
+  // Автор
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Статистика
+  viewers     Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("streams")
+}
+
+// Сообщение в чате
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  
+  // Автор
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Стрим
+  streamId  String
+  stream    Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  
+  // Модерация
+  isDeleted Boolean  @default(false)
+  
+  createdAt DateTime  @default(now())
+
+  @@map("chat_messages")
+}
+
+// Донат
+model Donation {
+  id        String   @id @default(cuid())
+  amount    Float
+  message   String?
+  
+  // Отправитель
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Получатель
+  authorId  String
+  author    User     @relation("AuthorDonations", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Статус
+  status    DonationStatus @default(PENDING)
+  
+  createdAt DateTime @default(now())
+
+  @@map("donations")
+}
+
+// Статусы донатов
+enum DonationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// Транзакция (экономика)
+model Transaction {
+  id          String           @id @default(cuid())
+  amount      Float
+  type        TransactionType
+  description String?
+  
+  // Пользователь
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Метаданные
+  metadata    Json?
+  
+  createdAt   DateTime         @default(now())
+
+  @@map("transactions")
+}
+
+// Типы транзакций
+enum TransactionType {
+  EARN    // Заработок
+  SPEND   // Трата
+  BONUS   // Бонус
+  REFUND  // Возврат
+}
+
+// Предмет
+model Item {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  kind        String   // 'AVATAR', 'BADGE', 'EFFECT'
+  rarity      ItemRarity
+  
+  // Хэш предмета
+  hash        String   @unique
+  
+  // Лимиты
+  totalSupply Int
+  minted      Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+
+  @@map("items")
+}
+
+// Редкость предметов
+enum ItemRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+// Предмет в инвентаре пользователя
+model UserItem {
+  id        String   @id @default(cuid())
+  
+  // Пользователь
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Предмет
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  // Серийный номер
+  serial    Int
+  
+  // Статус
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemId])
+  @@map("user_items")
+}
+
+// Тема оформления
+model Theme {
+  id        String   @id @default(cuid())
+  name      String
+  isDefault Boolean  @default(false)
+  
+  // Конфигурация темы
+  config    Json
+  
+  // Автор
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("themes")
+}

@@ -1,0 +1,21 @@
+/* Тема "Классика" */
+[data-theme="classic"] {
+  --color-primary-50: #faf5ff;
+  --color-primary-100: #f3e8ff;
+  --color-primary-500: #a855f7;
+  --color-primary-900: #581c87;
+  
+  --color-background: #fefefe;
+  --color-foreground: #1e1b4b;
+  --color-muted: #64748b;
+  --color-accent: #f8fafc;
+  --color-border: #e2e8f0;
+}
+
+[data-theme="classic"][data-theme="dark"] {
+  --color-background: #1e1b4b;
+  --color-foreground: #faf5ff;
+  --color-muted: #94a3b8;
+  --color-accent: #1e293b;
+  --color-border: #334155;
+}

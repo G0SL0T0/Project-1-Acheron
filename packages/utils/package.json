@@ -1,0 +1,20 @@
+{
+  "name": "@streaming/utils",
+  "version": "1.0.0",
+  "description": "Общие утилиты для платформы",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@streaming/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "files": [
+    "dist"
+  ]
+}
