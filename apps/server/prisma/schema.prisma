@@ -1,6 +1,4 @@
-// Это Prisma schema файл,
-// документация: https://pris.ly/d/prisma-schema
-
+// apps/server/prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,130 +8,114 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model OAuthAccount {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  provider  String   // 'google', 'yandex'
-  providerId String  // Уникальный ID от провайдера
-  email     String   // Email от провайдера
-  name      String?  // Имя от провайдера
-  avatar    String?  // Аватар от провайдера
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([provider, providerId])
-  @@map("oauth_accounts")
-}
-
-// Модель пользователя
+// Модели и поля для безопасности
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  username  String   @unique
-  password  String   // Хешированный пароль
-  avatar    String?
-  bio       String?
+  id              String   @id @default(cuid())
+  email           String   @unique
+  password        String?
+  nickname        String   @unique
+  avatar          String?
+  role            UserRole @default(USER)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   
-  // Шифрованные поля
-  encryptedEmail String? // Для защиты
+  // Новые поля для безопасности
+  encryptedEmail  String   @map("encrypted_email") // Шифрованный email
+  twoFactorSecret String?  @map("two_factor_secret") // Секрет для 2FA
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
+  lastLoginAt     DateTime? @map("last_login_at")
+  isLocked        Boolean  @default(false) @map("is_locked")
+  lockedUntil    DateTime? @map("locked_until")
   
-  // Данные для 2FA
-  twoFactorSecret   String?
-  twoFactorEnabled Boolean  @default(false)
-  backupCodes       String[] // JSON массив
+  // Связи
+  profile         Profile?
+  streams         Stream[]
+  chatMessages    ChatMessage[]
+  donations       Donation[]
+  wallet          Wallet?
+  subscriptions   Subscription[]
+  userItems       UserItem[]
+  gameSessions    GameSession[]
+  purchases       Purchase[]
+  settings        UserSettings?
+  oauthAccounts   OAuthAccount[]
+  securityEvents  SecurityEvent[]
   
-  // Безопасность
-  lastLoginAt       DateTime?
-  loginAttempts     Int      @default(0)
-  lockedUntil       DateTime?
-  
-  // Роли
-  roles     UserRole[]
-  
-  // Профиль
-  profile   Profile?
-  
-  // Стримы
-  streams   Stream[]
-  
-  // Сообщения в чате
-  messages  ChatMessage[]
-  
-  // Донаты
-  donations Donation[]
-  
-  // Транзакции
-  transactions Transaction[]
-  
-  // Предметы в инвентаре
-  userItems UserItem[]
-  
-  // Временные метки
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
   @@map("users")
 }
 
-// Аудит безопасности
-model SecurityAudit {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  action      String   // 'LOGIN', 'LOGOUT', 'PASSWORD_CHANGE', '2FA_ENABLED'
-  ipAddress   String
-  userAgent   String?
-  successful  Boolean
-  metadata    Json?    // Доп данные
-  
-  createdAt   DateTime @default(now())
-
-  @@map("security_audits")
+enum UserRole {
+  USER
+  STREAMER
+  ADMIN
 }
 
-// Профиль пользователя
+// Модель для OAuth аккаунтов
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  provider          String   // google, yandex, steam, discord
+  providerAccountId String
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@map("oauth_accounts")
+}
+
+// Модель для аудита безопасности
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  event     String   // login_failed, password_changed, etc.
+  details   Json     // Детали события
+  ipAddress String?  // IP адрес
+  userAgent String?  // User Agent
+  timestamp DateTime @default(now())
+  
+  // Связи
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("security_events")
+}
+
+// Модель профиля
 model Profile {
   id          String   @id @default(cuid())
+  bio         String?
+  cover       String?
+  socialLinks Json     // Шифруется
+  language    String   @default("ru")
+  timezone    String   @default("Europe/Moscow")
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // Российские социальные сети
-  vk          String?  // ВКонтакте
-  telegram    String?  // Telegram (username или @username)
-  ok          String?  // Одноклассники
-  dzen        String?  // Дзен
-  boosty      String?  // Boosty
-  vkPlay      String?  // VK Play
-  yandexZen   String?  // Яндекс.Дзен (альтернатива dzen)
-  mailRu      String?  // Мой Мир@Mail.Ru
-  
-  // Зарубежные
-  twitter     String?
-  youtube     String?
-  twitch      String?
-  instagram   String?
-  facebook    String?
-  
-  // Другие платформы
-  tiktok      String?  // TikTok
-  discord     String?  // Discord (username или сервер)
-  github      String?  // GitHub
-  
-  // Настройки
-  language    String   @default("ru")
-  timezone    String   @default("Europe/Moscow")
-  
-  // Приватность
-  showSocials Boolean  @default(true)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
   @@map("profiles")
+}
+
+// Модель для настроек пользователя
+model UserSettings {
+  id               String            @id @default(cuid())
+  performanceMode  PerformanceMode   @default(ECONOMY)
+  effectsEnabled   Boolean           @default(true)
+  themeId          String?
+  interfaceConfig Json               // Конфигурация интерфейса
+  notifications    Json              // Настройки уведомлений
+  privacySettings  Json              // Настройки приватности
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Связи
+  userId String   @unique
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_settings")
+}
+
+enum PerformanceMode {
+  ECONOMY
+  DESIGN
+  PRO
 }
 
 // Роли пользователя
