@@ -30,12 +30,6 @@ export class AuthService {
     }
     return { access_token: this.jwt.sign({ sub: user.id, email: user.email }) };
   }
-
-  async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (user && (await bcrypt.compare(password, user.password!))) return user;
-    return null;
-  }
 }
 /*
 import { Injectable, UnauthorizedException, Logger, ConflictException } from '@nestjs/common';
