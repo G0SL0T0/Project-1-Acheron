@@ -1,3 +1,4 @@
+/*
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -11,7 +12,19 @@ import { DastService } from './common/services/dast.service';
 import * as fs from 'fs';
 import * as https from 'https';
 import { httpsOptions } from './common/configs/https.config';
+*/
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('api');
+  app.enableCors();
+  await app.listen(3000);
+  console.log('🚀 Server running on http://localhost:3000');
+}
+bootstrap();
+/*
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { 
     bufferLogs: true,
@@ -95,4 +108,4 @@ async function bootstrap() {
   await loggingService.info('Application started successfully', 'BOOTSTRAP', { port });
 }
 
-bootstrap();
+bootstrap();*/

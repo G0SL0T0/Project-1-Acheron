@@ -6,18 +6,12 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
-
-// Стратегии
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { YandexStrategy } from './strategies/yandex.strategy';
-
-// Сервисы
 import { TokenService } from './services/token.service';
 import { AdvancedJwtService } from './services/advanced-jwt.service';
 import { OAuthService } from './services/oauth.service';
-
-// Guards
 import { WsJwtGuard } from './guards/ws-jwt.guard';
 
 @Module({
