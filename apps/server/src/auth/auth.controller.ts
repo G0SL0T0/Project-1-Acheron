@@ -1,3 +1,25 @@
+//apps/server/src/auth/auth.controller.ts
+
+import { Controller, Post, Body } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private authService: AuthService) {}
+
+  @Post('register')
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @Post('login')
+  async login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
+}
+/*
 import { Controller, Get, Request, UseGuards, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
@@ -45,3 +67,4 @@ export class AuthController {
     res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}`);
   }
 }
+  */

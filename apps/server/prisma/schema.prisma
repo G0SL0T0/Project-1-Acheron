@@ -1,4 +1,3 @@
-// apps/server/prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,297 +7,53 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Модели и поля для безопасности
 model User {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  password        String?
-  nickname        String   @unique
-  avatar          String?
-  role            UserRole @default(USER)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Новые поля для безопасности
-  encryptedEmail  String   @map("encrypted_email") // Шифрованный email
-  twoFactorSecret String?  @map("two_factor_secret") // Секрет для 2FA
-  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
-  lastLoginAt     DateTime? @map("last_login_at")
-  isLocked        Boolean  @default(false) @map("is_locked")
-  lockedUntil    DateTime? @map("locked_until")
-  
-  // Связи
-  profile         Profile?
-  streams         Stream[]
-  chatMessages    ChatMessage[]
-  donations       Donation[]
-  wallet          Wallet?
-  subscriptions   Subscription[]
-  userItems       UserItem[]
-  gameSessions    GameSession[]
-  purchases       Purchase[]
-  settings        UserSettings?
-  oauthAccounts   OAuthAccount[]
-  securityEvents  SecurityEvent[]
-  
-  @@map("users")
-}
-
-enum UserRole {
-  USER
-  STREAMER
-  ADMIN
-}
-
-// Модель для OAuth аккаунтов
-model OAuthAccount {
-  id                String   @id @default(cuid())
-  provider          String   // google, yandex, steam, discord
-  providerAccountId String
-  userId            String
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([provider, providerAccountId])
-  @@map("oauth_accounts")
-}
-
-// Модель для аудита безопасности
-model SecurityEvent {
-  id        String   @id @default(cuid())
-  event     String   // login_failed, password_changed, etc.
-  details   Json     // Детали события
-  ipAddress String?  // IP адрес
-  userAgent String?  // User Agent
-  timestamp DateTime @default(now())
-  
-  // Связи
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("security_events")
-}
-
-// Модель профиля
-model Profile {
-  id          String   @id @default(cuid())
-  bio         String?
-  cover       String?
-  socialLinks Json     // Шифруется
-  language    String   @default("ru")
-  timezone    String   @default("Europe/Moscow")
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("profiles")
-}
-
-// Модель для настроек пользователя
-model UserSettings {
-  id               String            @id @default(cuid())
-  performanceMode  PerformanceMode   @default(ECONOMY)
-  effectsEnabled   Boolean           @default(true)
-  themeId          String?
-  interfaceConfig Json               // Конфигурация интерфейса
-  notifications    Json              // Настройки уведомлений
-  privacySettings  Json              // Настройки приватности
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  
-  // Связи
-  userId String   @unique
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("user_settings")
-}
-
-enum PerformanceMode {
-  ECONOMY
-  DESIGN
-  PRO
-}
-
-// Роли пользователя
-model UserRole {
-  id     String @id @default(cuid())
-  userId String
-  role   String // 'USER', 'AUTHOR', 'ADMIN'
-  
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, role])
-  @@map("user_roles")
-}
-
-// Стрим
-model Stream {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  category    String?
-  
-  // Статус
-  isLive      Boolean  @default(false)
-  streamKey   String   @unique
-  hlsUrl      String?
-  
-  // Автор
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
-  // Статистика
-  viewers     Int      @default(0)
-  
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String?
+  nickname    String   @unique
+  role        Role     @default(USER)
+  lastLoginAt DateTime?
+  isLocked    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@map("streams")
+  profile      Profile?
+  refreshToken RefreshToken[]
+  oAuthAccount OAuthAccount[]
 }
 
-// Сообщение в чате
-model ChatMessage {
-  id        String   @id @default(cuid())
-  content   String
-  
-  // Автор
+model Profile {
+  id       String @id @default(uuid())
+  userId   String @unique
+  bio      String?
+  avatar   String?
+  language String @default("ru")
+  user     User   @relation(fields: [userId], references: [id])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Стрим
-  streamId  String
-  stream    Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  
-  // Модерация
-  isDeleted Boolean  @default(false)
-  
-  createdAt DateTime  @default(now())
-
-  @@map("chat_messages")
+  token     String   @unique
+  jti       String   @unique
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
 }
 
-// Донат
-model Donation {
-  id        String   @id @default(cuid())
-  amount    Float
-  message   String?
-  
-  // Отправитель
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  // Получатель
-  authorId  String
-  author    User     @relation("AuthorDonations", fields: [authorId], references: [id], onDelete: Cascade)
-  
-  // Статус
-  status    DonationStatus @default(PENDING)
-  
-  createdAt DateTime @default(now())
+model OAuthAccount {
+  id                String @id @default(uuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  providerId        String?
+  user              User   @relation(fields: [userId], references: [id])
 
-  @@map("donations")
+  @@unique([provider, providerAccountId])
 }
 
-// Статусы донатов
-enum DonationStatus {
-  PENDING
-  COMPLETED
-  FAILED
-}
-
-// Транзакция (экономика)
-model Transaction {
-  id          String           @id @default(cuid())
-  amount      Float
-  type        TransactionType
-  description String?
-  
-  // Пользователь
-  userId      String
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Метаданные
-  metadata    Json?
-  
-  createdAt   DateTime         @default(now())
-
-  @@map("transactions")
-}
-
-// Типы транзакций
-enum TransactionType {
-  EARN    // Заработок
-  SPEND   // Трата
-  BONUS   // Бонус
-  REFUND  // Возврат
-}
-
-// Предмет
-model Item {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  kind        String   // 'AVATAR', 'BADGE', 'EFFECT'
-  rarity      ItemRarity
-  
-  // Хэш предмета
-  hash        String   @unique
-  
-  // Лимиты
-  totalSupply Int
-  minted      Int      @default(0)
-  
-  createdAt   DateTime @default(now())
-
-  @@map("items")
-}
-
-// Редкость предметов
-enum ItemRarity {
-  COMMON
-  RARE
-  EPIC
-  LEGENDARY
-}
-
-// Предмет в инвентаре пользователя
-model UserItem {
-  id        String   @id @default(cuid())
-  
-  // Пользователь
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Предмет
-  itemId    String
-  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  
-  // Серийный номер
-  serial    Int
-  
-  // Статус
-  isActive  Boolean  @default(true)
-  
-  createdAt DateTime @default(now())
-
-  @@unique([userId, itemId])
-  @@map("user_items")
-}
-
-// Тема оформления
-model Theme {
-  id        String   @id @default(cuid())
-  name      String
-  isDefault Boolean  @default(false)
-  
-  // Конфигурация темы
-  config    Json
-  
-  // Автор
-  authorId  String?
-  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("themes")
+enum Role {
+  USER
+  ADMIN
 }

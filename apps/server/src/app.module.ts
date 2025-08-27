@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 
-
+@Module({
+  imports: [PrismaModule, AuthModule],
+})
+export class AppModule {}
 /*
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -140,7 +143,3 @@ export class AppModule {
   }
 }
   */
-@Module({
-  imports: [PrismaModule, AuthModule],
-})
-export class AppModule {}

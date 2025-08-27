@@ -10,5 +10,5 @@ export class RegisterDto {
   password: string;
 
   @IsString()
-  username: string;
+  nickname: string;
 }
